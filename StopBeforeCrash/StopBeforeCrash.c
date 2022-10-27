@@ -15,13 +15,18 @@ typedef enum Sensor {
 	RIGHT, FRONT_RIGHT, FRONT, FRONT_LEFT, LEFT
 } sensor_t;
 
-const int MINIMUM_DISTANCE_RIGHT = 140;
-const int MINIMUM_DISTANCE_FRONT_RIGHT = 110;
-const int MINIMUM_DISTANCE_FRONT = 230;
-const int MINIMUM_DISTANCE_FRONT_LEFT = 100;
-const int MINIMUM_DISTANCE_LEFT = 140;
+const int MINIMUM_DISTANCE_RIGHT = 200;
+const int MINIMUM_DISTANCE_RIGHT_FRONT = 200;
+
+const int MINIMUM_DISTANCE_FRONT_RIGHT = 135;
+const int MINIMUM_DISTANCE_FRONT = 200;
+const int MINIMUM_DISTANCE_FRONT_LEFT = 110;
+
+const int MINIMUM_DISTANCE_LEFT = 200;
+const int MINIMUM_DISTANCE_LEFT_FRONT = 160;
 
 const int SPEED = 10;
+const int TURNING_SPEED = 5;
 
 state_t lastState = DRIVING;
 state_t currentState = DRIVING;
@@ -36,6 +41,8 @@ bool isNearSomething(sensor_t sensor) {
 	switch (sensor) {
 	case RIGHT:
 		isNearSomething = getCurrentDistance(RIGHT) >= MINIMUM_DISTANCE_RIGHT;
+		isNearSomething |= getCurrentDistance(FRONT_RIGHT)
+				>= MINIMUM_DISTANCE_FRONT_RIGHT;
 		break;
 	case FRONT:
 		isNearSomething = getCurrentDistance(FRONT_RIGHT)
@@ -44,12 +51,10 @@ bool isNearSomething(sensor_t sensor) {
 		isNearSomething |= getCurrentDistance(FRONT_LEFT)
 				>= MINIMUM_DISTANCE_FRONT_LEFT;
 		break;
-	case FRONT_LEFT:
-		isNearSomething = getCurrentDistance(FRONT_LEFT)
-				>= MINIMUM_DISTANCE_FRONT_LEFT;
-		break;
 	case LEFT:
 		isNearSomething = getCurrentDistance(LEFT) >= MINIMUM_DISTANCE_LEFT;
+		isNearSomething |= getCurrentDistance(FRONT_LEFT)
+				>= MINIMUM_DISTANCE_FRONT_LEFT;
 		break;
 	default:
 		break;
@@ -61,40 +66,94 @@ bool isNearSomething(sensor_t sensor) {
 void changeState(state_t oldState, state_t newState) {
 	lastState = oldState;
 	currentState = newState;
+	switch (newState) {
+	case DRIVING:
+		leds_set_status(LEDS_GREEN, 4);
+		leds_set_status(LEDS_GREEN, 5);
+		break;
+	case BACK_DRIVING:
+		leds_set_status(LEDS_RED, 0);
+		leds_set_status(LEDS_RED, 1);
+		break;
+	case TURNING_LEFT:
+		leds_set_status(LEDS_ORANGE, 2);
+		leds_set_status(LEDS_ORANGE, 3);
+		break;
+	case TURNING_RIGHT:
+		leds_set_status(LEDS_ORANGE, 6);
+		leds_set_status(LEDS_ORANGE, 7);
+		break;
+	default:
+		break;
+	}
 }
 
-void check() {
+state_t detectPathOfMinResistance() {
+	state_t pathOfMinResistance = TURNING_LEFT;
+	int distLeft = getCurrentDistance(LEFT);
+	int distRight = getCurrentDistance(RIGHT);
+	if (distLeft > distRight && distRight <= MINIMUM_DISTANCE_RIGHT) {
+		pathOfMinResistance = TURNING_RIGHT;
+	}
+	return pathOfMinResistance;
+}
+
+void evaluateNextStep() {
 	switch (currentState) {
 	case DRIVING:
 		if (isNearSomething(FRONT)) {
 			if (isNearSomething(LEFT) && isNearSomething(RIGHT)) {
 				changeState(DRIVING, BACK_DRIVING);
-			} else if (!isNearSomething(LEFT)) {
-				changeState(DRIVING, TURNING_LEFT);
-			} else if (isNearSomething(RIGHT)) {
-				changeState(DRIVING, TURNING_RIGHT);
+			} else {
+				changeState(DRIVING, detectPathOfMinResistance());
 			}
 		} else {
 			copro_setSpeed(SPEED, SPEED);
 		}
 		break;
 	case TURNING_LEFT:
-		if (!isNearSomething(FRONT) && !isNearSomething(FRONT_LEFT)) {
-			changeState(TURNING_LEFT, DRIVING);
+		if (!isNearSomething(LEFT)) {
+			if (lastState == DRIVING) {
+				if (isNearSomething(FRONT)) {
+					copro_setTargetRel(-TURNING_SPEED, TURNING_SPEED, SPEED);
+				} else {
+					changeState(TURNING_LEFT, lastState);
+				}
+			} else {
+				// lastState == BACK_DRIVING && left is nothing
+				if (!isNearSomething(RIGHT)) {
+					changeState(TURNING_LEFT, DRIVING);
+				} else {
+					copro_setTargetRel(-TURNING_SPEED, TURNING_SPEED, SPEED);
+				}
+			}
 		} else {
-			copro_setTargetRel(-5, 5, SPEED);
+			changeState(TURNING_LEFT, lastState);
 		}
 		break;
 	case TURNING_RIGHT:
-		if (!isNearSomething(FRONT)) {
-			changeState(TURNING_RIGHT, DRIVING);
+		if (!isNearSomething(RIGHT)) {
+			if (lastState == DRIVING) {
+				if (isNearSomething(FRONT)) {
+					copro_setTargetRel(TURNING_SPEED, -TURNING_SPEED, SPEED);
+				} else {
+					changeState(TURNING_RIGHT, lastState);
+				}
+			} else {
+				// lastState == BACK_DRIVING && right is nothing
+				if (!isNearSomething(LEFT)) {
+					changeState(TURNING_RIGHT, DRIVING);
+				} else {
+					copro_setTargetRel(TURNING_SPEED, -TURNING_SPEED, SPEED);
+				}
+			}
 		} else {
-			copro_setTargetRel(5, -5, SPEED);
+			changeState(TURNING_RIGHT, lastState);
 		}
 		break;
 	case BACK_DRIVING:
-		if (!isNearSomething(LEFT)) {
-			changeState(BACK_DRIVING, TURNING_LEFT);
+		if (!isNearSomething(LEFT) || !isNearSomething(RIGHT)) {
+			changeState(BACK_DRIVING, detectPathOfMinResistance());
 		} else {
 			copro_setSpeed(-SPEED, -SPEED);
 		}
@@ -120,6 +179,9 @@ void printDistances() {
 		gfx_move(23 * i, 10);
 		gfx_print_text(output);
 	}
+	sprintf(output, "%3i", currentState);
+	gfx_move(0, 30);
+	gfx_print_text(output);
 
 }
 /**
@@ -152,8 +214,6 @@ void init() {
 int main() {
 	init();
 
-	int speed = 10;
-
 	while (1) {
 
 		// Aktualisierung aller Daten vom Coprozessor
@@ -161,7 +221,7 @@ int main() {
 
 		printDistances();
 
-		check();
+		evaluateNextStep();
 
 		delay(100);
 
