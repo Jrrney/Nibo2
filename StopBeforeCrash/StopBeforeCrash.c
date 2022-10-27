@@ -16,11 +16,11 @@ typedef enum Sensor {
 } sensor_t;
 
 const int MINIMUM_DISTANCE_RIGHT = 200;
-const int MINIMUM_DISTANCE_RIGHT_FRONT = 200;
+const int MINIMUM_DISTANCE_RIGHT_FRONT = 120;
 
-const int MINIMUM_DISTANCE_FRONT_RIGHT = 135;
-const int MINIMUM_DISTANCE_FRONT = 200;
-const int MINIMUM_DISTANCE_FRONT_LEFT = 110;
+const int MINIMUM_DISTANCE_FRONT_RIGHT = 150;
+const int MINIMUM_DISTANCE_FRONT = 190;
+const int MINIMUM_DISTANCE_FRONT_LEFT = 160;
 
 const int MINIMUM_DISTANCE_LEFT = 200;
 const int MINIMUM_DISTANCE_LEFT_FRONT = 160;
@@ -41,20 +41,21 @@ bool isNearSomething(sensor_t sensor) {
 	switch (sensor) {
 	case RIGHT:
 		isNearSomething = getCurrentDistance(RIGHT) >= MINIMUM_DISTANCE_RIGHT;
-		isNearSomething |= getCurrentDistance(FRONT_RIGHT)
-				>= MINIMUM_DISTANCE_FRONT_RIGHT;
 		break;
 	case FRONT:
+
+		isNearSomething = getCurrentDistance(FRONT) >= MINIMUM_DISTANCE_FRONT;
+		break;
+	case FRONT_LEFT:
+		isNearSomething = getCurrentDistance(FRONT_LEFT)
+				>= MINIMUM_DISTANCE_FRONT_LEFT;
+		break;
+	case FRONT_RIGHT:
 		isNearSomething = getCurrentDistance(FRONT_RIGHT)
 				>= MINIMUM_DISTANCE_FRONT_RIGHT;
-		isNearSomething |= getCurrentDistance(FRONT) >= MINIMUM_DISTANCE_FRONT;
-		isNearSomething |= getCurrentDistance(FRONT_LEFT)
-				>= MINIMUM_DISTANCE_FRONT_LEFT;
 		break;
 	case LEFT:
 		isNearSomething = getCurrentDistance(LEFT) >= MINIMUM_DISTANCE_LEFT;
-		isNearSomething |= getCurrentDistance(FRONT_LEFT)
-				>= MINIMUM_DISTANCE_FRONT_LEFT;
 		break;
 	default:
 		break;
@@ -63,23 +64,51 @@ bool isNearSomething(sensor_t sensor) {
 	return isNearSomething;
 }
 
+/**
+ * @param oldState the state
+ * @param newState
+ */
 void changeState(state_t oldState, state_t newState) {
 	lastState = oldState;
 	currentState = newState;
 	switch (newState) {
 	case DRIVING:
+		leds_set_status(LEDS_OFF, 0);
+		leds_set_status(LEDS_OFF, 1);
+		leds_set_status(LEDS_OFF, 2);
+		leds_set_status(LEDS_OFF, 3);
 		leds_set_status(LEDS_GREEN, 4);
 		leds_set_status(LEDS_GREEN, 5);
+		leds_set_status(LEDS_OFF, 6);
+		leds_set_status(LEDS_OFF, 7);
 		break;
 	case BACK_DRIVING:
 		leds_set_status(LEDS_RED, 0);
 		leds_set_status(LEDS_RED, 1);
+		leds_set_status(LEDS_OFF, 2);
+		leds_set_status(LEDS_OFF, 3);
+		leds_set_status(LEDS_OFF, 4);
+		leds_set_status(LEDS_OFF, 5);
+		leds_set_status(LEDS_OFF, 6);
+		leds_set_status(LEDS_OFF, 7);
 		break;
 	case TURNING_LEFT:
+		leds_set_status(LEDS_OFF, 0);
+		leds_set_status(LEDS_OFF, 1);
 		leds_set_status(LEDS_ORANGE, 2);
 		leds_set_status(LEDS_ORANGE, 3);
+		leds_set_status(LEDS_OFF, 4);
+		leds_set_status(LEDS_OFF, 5);
+		leds_set_status(LEDS_OFF, 6);
+		leds_set_status(LEDS_OFF, 7);
 		break;
 	case TURNING_RIGHT:
+		leds_set_status(LEDS_OFF, 0);
+		leds_set_status(LEDS_OFF, 1);
+		leds_set_status(LEDS_OFF, 2);
+		leds_set_status(LEDS_OFF, 3);
+		leds_set_status(LEDS_OFF, 4);
+		leds_set_status(LEDS_OFF, 5);
 		leds_set_status(LEDS_ORANGE, 6);
 		leds_set_status(LEDS_ORANGE, 7);
 		break;
@@ -101,7 +130,8 @@ state_t detectPathOfMinResistance() {
 void evaluateNextStep() {
 	switch (currentState) {
 	case DRIVING:
-		if (isNearSomething(FRONT)) {
+		if (isNearSomething(FRONT) || isNearSomething(FRONT_LEFT)
+				|| isNearSomething(FRONT_RIGHT)) {
 			if (isNearSomething(LEFT) && isNearSomething(RIGHT)) {
 				changeState(DRIVING, BACK_DRIVING);
 			} else {
@@ -112,9 +142,10 @@ void evaluateNextStep() {
 		}
 		break;
 	case TURNING_LEFT:
-		if (!isNearSomething(LEFT)) {
+		if (!isNearSomething(LEFT) || !isNearSomething(FRONT_LEFT)) {
 			if (lastState == DRIVING) {
-				if (isNearSomething(FRONT)) {
+				if (isNearSomething(FRONT) || isNearSomething(FRONT_LEFT)
+						|| isNearSomething(FRONT_RIGHT)) {
 					copro_setTargetRel(-TURNING_SPEED, TURNING_SPEED, SPEED);
 				} else {
 					changeState(TURNING_LEFT, lastState);
@@ -132,9 +163,10 @@ void evaluateNextStep() {
 		}
 		break;
 	case TURNING_RIGHT:
-		if (!isNearSomething(RIGHT)) {
+		if (!isNearSomething(RIGHT) || !isNearSomething(FRONT_RIGHT)) {
 			if (lastState == DRIVING) {
-				if (isNearSomething(FRONT)) {
+				if (isNearSomething(FRONT) || isNearSomething(FRONT_LEFT)
+						|| isNearSomething(FRONT_RIGHT)) {
 					copro_setTargetRel(TURNING_SPEED, -TURNING_SPEED, SPEED);
 				} else {
 					changeState(TURNING_RIGHT, lastState);
@@ -199,6 +231,8 @@ void init() {
 
 	// Initialisierung der LEDs
 	leds_init();
+
+	changeState(DRIVING, DRIVING);
 
 	// initialisiert das Display und die Grafikfunktionen
 	display_init();
