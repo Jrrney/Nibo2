@@ -7,8 +7,12 @@
 #include "main.h"
 #include <stdbool.h>
 
+// Die darzustellende Grafik
+#include "good.xbm"
+#include "bad.xbm"
+
 typedef enum State {
-	DRIVING, TURNING_RIGHT, TURNING_LEFT, BACK_DRIVING
+	DRIVING, TURNING_RIGHT, TURNING_LEFT, BACK_DRIVING, STUCK, NOT_STUCK
 } state_t;
 
 typedef enum Sensor {
@@ -27,9 +31,11 @@ const int MINIMUM_DISTANCE_LEFT_FRONT = 160;
 
 const int SPEED = 10;
 const int TURNING_SPEED = 5;
+const int TURNING_STUCK_SPEED = 20;
 
 state_t lastState = DRIVING;
 state_t currentState = DRIVING;
+state_t currentStuckState = NOT_STUCK;
 
 int getCurrentDistance(sensor_t sensor) {
 	return copro_distance[sensor] / 256;
@@ -43,8 +49,11 @@ bool isNearSomething(sensor_t sensor) {
 		isNearSomething = getCurrentDistance(RIGHT) >= MINIMUM_DISTANCE_RIGHT;
 		break;
 	case FRONT:
-
-		isNearSomething = getCurrentDistance(FRONT) >= MINIMUM_DISTANCE_FRONT;
+		isNearSomething |= getCurrentDistance(FRONT_RIGHT)
+				>= MINIMUM_DISTANCE_FRONT_RIGHT;
+		isNearSomething |= getCurrentDistance(FRONT) >= MINIMUM_DISTANCE_FRONT;
+		isNearSomething |= getCurrentDistance(FRONT_LEFT)
+				>= MINIMUM_DISTANCE_FRONT_LEFT;
 		break;
 	case FRONT_LEFT:
 		isNearSomething = getCurrentDistance(FRONT_LEFT)
@@ -117,6 +126,22 @@ void changeState(state_t oldState, state_t newState) {
 	}
 }
 
+void changeStuckState(state_t newState) {
+	if (newState == currentStuckState)
+		return;
+	currentStuckState = newState;
+
+	//reinige Display
+	gfx_move(0, 0);
+	gfx_fill(0);
+
+	if (newState == STUCK) {
+		gfx_draw_xbm_P(bad_width, bad_height, (PGM_P) bad_bits);
+	} else {
+		gfx_draw_xbm_P(good_width, good_height, (PGM_P) good_bits);
+	}
+}
+
 state_t detectPathOfMinResistance() {
 	state_t pathOfMinResistance = TURNING_LEFT;
 	int distLeft = getCurrentDistance(LEFT);
@@ -130,62 +155,55 @@ state_t detectPathOfMinResistance() {
 void evaluateNextStep() {
 	switch (currentState) {
 	case DRIVING:
-		if (isNearSomething(FRONT) || isNearSomething(FRONT_LEFT)
-				|| isNearSomething(FRONT_RIGHT)) {
+		if (isNearSomething(FRONT)) {
+			changeStuckState(STUCK);
 			if (isNearSomething(LEFT) && isNearSomething(RIGHT)) {
 				changeState(DRIVING, BACK_DRIVING);
 			} else {
 				changeState(DRIVING, detectPathOfMinResistance());
 			}
 		} else {
+			changeStuckState(NOT_STUCK);
 			copro_setSpeed(SPEED, SPEED);
 		}
 		break;
 	case TURNING_LEFT:
-		if (!isNearSomething(LEFT) || !isNearSomething(FRONT_LEFT)) {
-			if (lastState == DRIVING) {
-				if (isNearSomething(FRONT) || isNearSomething(FRONT_LEFT)
-						|| isNearSomething(FRONT_RIGHT)) {
-					copro_setTargetRel(-TURNING_SPEED, TURNING_SPEED, SPEED);
-				} else {
-					changeState(TURNING_LEFT, lastState);
-				}
+		if (lastState == DRIVING) {
+			if (isNearSomething(FRONT)) {
+				copro_setTargetRel(-TURNING_SPEED, TURNING_SPEED, SPEED);
 			} else {
-				// lastState == BACK_DRIVING && left is nothing
-				if (!isNearSomething(RIGHT)) {
-					changeState(TURNING_LEFT, DRIVING);
-				} else {
-					copro_setTargetRel(-TURNING_SPEED, TURNING_SPEED, SPEED);
-				}
+				changeState(TURNING_LEFT, lastState);
 			}
 		} else {
-			changeState(TURNING_LEFT, lastState);
+			// lastState == BACK_DRIVING && left is nothing
+			copro_setTargetRel(-TURNING_STUCK_SPEED, TURNING_STUCK_SPEED, SPEED);
+			delay(2000);
+			changeState(TURNING_LEFT, BACK_DRIVING);
 		}
 		break;
 	case TURNING_RIGHT:
-		if (!isNearSomething(RIGHT) || !isNearSomething(FRONT_RIGHT)) {
-			if (lastState == DRIVING) {
-				if (isNearSomething(FRONT) || isNearSomething(FRONT_LEFT)
-						|| isNearSomething(FRONT_RIGHT)) {
-					copro_setTargetRel(TURNING_SPEED, -TURNING_SPEED, SPEED);
-				} else {
-					changeState(TURNING_RIGHT, lastState);
-				}
+		if (lastState == DRIVING) {
+			if (isNearSomething(FRONT)) {
+				copro_setTargetRel(TURNING_SPEED, -TURNING_SPEED, SPEED);
 			} else {
-				// lastState == BACK_DRIVING && right is nothing
-				if (!isNearSomething(LEFT)) {
-					changeState(TURNING_RIGHT, DRIVING);
-				} else {
-					copro_setTargetRel(TURNING_SPEED, -TURNING_SPEED, SPEED);
-				}
+				changeState(TURNING_RIGHT, DRIVING);
 			}
 		} else {
-			changeState(TURNING_RIGHT, lastState);
+			// lastState == BACK_DRIVING && left is nothing
+			copro_setTargetRel(TURNING_STUCK_SPEED, -TURNING_STUCK_SPEED, SPEED);
+			delay(2000);
+			changeState(TURNING_RIGHT, BACK_DRIVING);
 		}
 		break;
 	case BACK_DRIVING:
-		if (!isNearSomething(LEFT) || !isNearSomething(RIGHT)) {
-			changeState(BACK_DRIVING, detectPathOfMinResistance());
+		if (lastState != DRIVING && !isNearSomething(FRONT)) {
+			changeState(BACK_DRIVING, DRIVING);
+		} else if (getCurrentDistance(FRONT_LEFT) <= 130
+				&& getCurrentDistance(LEFT) <= 40) {
+			changeState(BACK_DRIVING, TURNING_LEFT);
+		} else if (getCurrentDistance(FRONT_RIGHT) <= 100
+				&& getCurrentDistance(RIGHT) <= 40) {
+			changeState(BACK_DRIVING, TURNING_RIGHT);
 		} else {
 			copro_setSpeed(-SPEED, -SPEED);
 		}
@@ -235,7 +253,8 @@ void init() {
 	changeState(DRIVING, DRIVING);
 
 	// initialisiert das Display und die Grafikfunktionen
-	display_init();
+	display_init(DISPLAY_TYPE_TXT);
+
 	gfx_init();
 
 	// Distanzmessung anschalten
@@ -253,7 +272,7 @@ int main() {
 		// Aktualisierung aller Daten vom Coprozessor
 		copro_update();
 
-		printDistances();
+//		printDistances();
 
 		evaluateNextStep();
 
