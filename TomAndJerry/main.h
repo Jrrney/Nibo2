@@ -65,6 +65,18 @@
 // Ein- und Ausgabefunktionen
 #include <stdio.h>
 
+// bool
+#include <stdbool.h>
+
+// includes xBee Communication
+// be aware to include it locally with ""
+#include "xBee.h"
+
+#include <math.h>
+
+#include <string.h>
+#include <stdlib.h>
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////

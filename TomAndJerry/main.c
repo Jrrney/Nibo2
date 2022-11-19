@@ -9,32 +9,50 @@
 #include <time.h> // used for random
 
 #include "main.h"
+#include "detector.h"
 
-typedef enum direction {
-	FORWARD,
-	BACKWARD,
-	LEFT,
-	RIGHT,
-	COUNT
-} t_direction;
+//char randomDirection() {
+//	char directionCode;
+// test rand() !!!
+// t_direction d = rand();
 
-char randomDirection() {
-	char directionCode;
-	// test rand() !!!
-	// t_direction d = rand();
+//}
 
-}
+//char generateManoveurByte(int minDistance,
+//								int maxDistance,
+//								int minSpeed,
+//								int maxSpeed) {
+//	char manoveurByte = "10101010"
+//	manoveurByte = randomDirection();
+//	manoveurByte = manoveurByte + randomDistance(minDistance, maxDistance);
+//	manoveurByte = manoveurByte + randomSpeed(minSpeed, maxSpeed);
+//
+//	return manoveurByte;
+//}
 
-char generateManoveurByte(int minDistance,
-								int maxDistance,
-								int minSpeed,
-								int maxSpeed) {
-	char manoveurByte = "10101010"
-	manoveurByte = randomDirection();
-	manoveurByte = manoveurByte + randomDistance(minDistance, maxDistance);
-	manoveurByte = manoveurByte + randomSpeed(minSpeed, maxSpeed);
+void init() {
+	// Aktivierung von Interrupts
+	sei();
 
-	return manoveurByte;
+	// Initialisierung des Roboters (immer noetig)
+	bot_init();
+
+	// Initialisierung der SPI Schnittstelle
+	spi_init();
+
+	// Initialisierung der LEDs
+	leds_init();
+
+	// initialisiert das Display und die Grafikfunktionen
+	display_init();
+
+	gfx_init();
+
+	// Distanzmessung anschalten
+	copro_ir_startMeasure();
+
+	// initialize xBee Module
+	xBee_init();
 }
 
 /**
@@ -45,7 +63,13 @@ int main() {
 	// using system time for setting a seed for pseudo-random number generation
 	srand(time(0));
 
-	rand()
+	init();
+
+	delay(1000);
+
+//	rand()
+
+	t_role role = detectAndSetRole();
 
 }
 
