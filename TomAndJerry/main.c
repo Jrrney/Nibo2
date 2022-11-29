@@ -59,11 +59,10 @@ int main() {
 		// TODO maybe 00000000 empf
 		while (true) {
 			t_movement move = readMovement();
+			if (move.direction == 0 && move.ticks == 0 && move.speed == 0) {
+				break;
+			}
 			executeMovement(move);
-
-
-
-			// TODO stop when 00000000
 		}
 	} else if (role == MOUSE) {
 
@@ -79,8 +78,10 @@ int main() {
 
 		}
 
-		// TODO stop send 00000000
+		send(0);
 	}
+
+	resetRole();
 
 }
 

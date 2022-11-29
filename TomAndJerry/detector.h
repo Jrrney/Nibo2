@@ -8,4 +8,6 @@ typedef enum role {
 
 t_role detectAndSetRole();
 
+void resetRole();
+
 #endif

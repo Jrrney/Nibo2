@@ -127,7 +127,7 @@ unsigned char encode(t_movement data) {
 t_movement readMovement() {
 	t_movement r = decode(read());
 
-	printMovement(r);
+//	printMovement(r);
 
 	return r;
 }
@@ -135,7 +135,7 @@ t_movement readMovement() {
 void sendMovement(t_movement move) {
 	unsigned char e = encode(move);
 
-	printMovement(move);
+//	printMovement(move);
 
 	send(e);
 }

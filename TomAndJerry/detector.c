@@ -36,3 +36,7 @@ t_role detectAndSetRole() {
 	return role;
 }
 
+
+void resetRole() {
+	gfx_fill(0);
+}
