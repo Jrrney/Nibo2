@@ -272,6 +272,10 @@ void init() {
 
 	gfx_init();
 
+	gfx_move(0, 0);
+	gfx_fill(0);
+	gfx_draw_xbm_P(good_width, good_height, (PGM_P) good_bits);
+
 	// Distanzmessung anschalten
 	copro_ir_startMeasure();
 }
