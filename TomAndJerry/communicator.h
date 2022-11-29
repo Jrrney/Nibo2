@@ -2,6 +2,7 @@
 #define COM_H_
 
 #include "move.h"
+#include "main.h"
 
 uint8_t read();
 void send(uint8_t);

@@ -10,27 +10,14 @@
 
 #include "main.h"
 #include "detector.h"
-
-//char randomDirection() {
-//	char directionCode;
-// test rand() !!!
-// t_direction d = rand();
-
-//}
-
-//char generateManoveurByte(int minDistance,
-//								int maxDistance,
-//								int minSpeed,
-//								int maxSpeed) {
-//	char manoveurByte = "10101010"
-//	manoveurByte = randomDirection();
-//	manoveurByte = manoveurByte + randomDistance(minDistance, maxDistance);
-//	manoveurByte = manoveurByte + randomSpeed(minSpeed, maxSpeed);
-//
-//	return manoveurByte;
-//}
+#include "communicator.h"
+#include "move.h"
+#include "generator.h"
 
 void init() {
+	// using system time for setting a seed for pseudo-random number generation
+	srand(time(0));
+
 	// Aktivierung von Interrupts
 	sei();
 
@@ -53,6 +40,8 @@ void init() {
 
 	// initialize xBee Module
 	xBee_init();
+
+	delay(2000);
 }
 
 /**
@@ -60,16 +49,38 @@ void init() {
  */
 int main() {
 
-	// using system time for setting a seed for pseudo-random number generation
-	srand(time(0));
-
 	init();
 
-	delay(1000);
-
-//	rand()
-
 	t_role role = detectAndSetRole();
+
+	delay(15000);
+
+	if (role == CAT) {
+		// TODO maybe 00000000 empf
+		while (true) {
+			t_movement move = readMovement();
+			executeMovement(move);
+
+
+
+			// TODO stop when 00000000
+		}
+	} else if (role == MOUSE) {
+
+		int length = randomInRange(5, 8);
+		t_movement *movements = generateMoveList(length);
+
+		for (int moveIndex = 0; moveIndex < length; moveIndex++) {
+			t_movement move = movements[moveIndex];
+			sendMovement(move);
+			executeMovement(move);
+
+			delay(2000);
+
+		}
+
+		// TODO stop send 00000000
+	}
 
 }
 

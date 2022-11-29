@@ -1,9 +1,9 @@
-#include "main.h"
 #include "communicator.h"
-#include "move.h"
 
 #define CHAR_BIT 8
-const unsigned int multiplicator = 10;
+
+unsigned int MULTIPLIER_SPEED_C = 7;
+unsigned int MULTIPLIER_TICKS_C = 15;
 
 uint8_t read() {
 	while (1) {
@@ -17,108 +17,125 @@ uint8_t read() {
 	}
 }
 
-void send(uint8_t data) {
+void send(unsigned char data) {
 	while (1) {
 		if (xBee_readyToSend()) {
 			xBee_sendByte(data);
+			return;
 		}
-
 		// Delay for the operation loop
 		_delay_ms(5);
 
 	}
 }
 
-char *charToBinary(unsigned char c)
-{
-    static char bin[CHAR_BIT + 1] = {0};
-    int i;
+char* charToBinary(unsigned char c) {
+	static char bin[CHAR_BIT + 1] = { 0 };
+	int i;
 
-    for (i = CHAR_BIT - 1; i >= 0; i--)
-    {
-        bin[i] = (c % 2) + '0';
-        c /= 2;
-    }
+	for (i = CHAR_BIT - 1; i >= 0; i--) {
+		bin[i] = (c % 2) + '0';
+		c /= 2;
+	}
 
-    return bin;
+	return bin;
 }
 
-void convert2BinaryString(char *str, unsigned int number, unsigned int length)
-{
-    unsigned int decimal = number;
-    for (int i = 0; i < length; i++)
-    {
-        int digit = (decimal % 2);
-        str[length - i - 1] = (digit == 1 ? '1' : '0');
-        decimal /= 2;
-    }
-    printf("%s\n", str);
+char* toBinaryString(int n) {
+	char *string = malloc(sizeof(int) * 8 + 1);
+	if (!string) {
+		return NULL;
+	}
+	for (int i = 31; i >= 0; i--) {
+		string[i] = n & 1;
+		n >>= 1;
+	}
+	return string;
 }
 
-unsigned int convert2Decimal(char *str, unsigned int length)
-{
-    unsigned int decimal = 0;
-    for (int i = 0; i < length; i++)
-    {
-        int digit = pow(2, i) * (str[length - i - 1] == '1' ? 1 : 0);
-        decimal += digit;
-    }
-    return decimal;
+void convert2BinaryString(char *str, unsigned int number, unsigned int length) {
+	unsigned int decimal = number;
+	for (int i = 0; i < length; i++) {
+		str[length - i - 1] = (decimal % 2) + '0';
+		decimal /= 2;
+	}
 }
 
-t_movement decode(uint8_t data) {
+t_movement decode(unsigned char data) {
 	char *binaryData = charToBinary(data);
 
 	t_movement movement;
 
-	char *direction = malloc(2);
+	char direction[2];
 	strncpy(direction, binaryData + 0, 2);
-	movement.direction = convert2Decimal(direction, 2);
-	free(direction);
+	int direction_int = strtol(direction, NULL, 2);
+	movement.direction = direction_int;
 
-	char *ticks = malloc(3);
+	char ticks[3];
 	strncpy(ticks, binaryData + 2, 3);
-	movement.ticks = convert2Decimal(ticks, 3) * multiplicator;
-	free(ticks);
+	int ticks_int = strtol(ticks, NULL, 2);
+	movement.ticks = ticks_int * MULTIPLIER_TICKS_C;
 
-	char *speed = malloc(3);
+	char speed[3];
 	strncpy(speed, binaryData + 5, 3);
-	movement.speed = convert2Decimal(speed, 3) * multiplicator;
-	free(speed);
+	int speed_int = strtol(speed, NULL, 2);
+	movement.speed = speed_int * MULTIPLIER_SPEED_C;
 
 	return movement;
 }
 
-u8_t encode(t_movement data) {
-	char *res = malloc(8);
+void printMovement(t_movement move) {
+	gfx_fill(0);
+	char output[20] = "";
 
-	char *dirStr = malloc(2);
+	gfx_move(0, 0);
+	sprintf(output, "%3i", move.direction);
+	gfx_print_text(output);
+	gfx_move(0, 10);
+	sprintf(output, "%3i", move.ticks);
+	gfx_print_text(output);
+	gfx_move(0, 20);
+	sprintf(output, "%3i", move.speed);
+	gfx_print_text(output);
+}
+
+unsigned char encode(t_movement data) {
+	char res[8 + 1];
+
+	char dirStr[2];
 	convert2BinaryString(dirStr, data.direction, 2);
-	strcat(res, dirStr);
-	free(dirStr);
+	res[0] = dirStr[0];
+	res[1] = dirStr[1];
 
-	char *ticksStr = malloc(3);
-	convert2BinaryString(ticksStr, data.ticks / multiplicator, 3);
-	strcat(res, ticksStr);
-	free(ticksStr);
+	char ticksStr[3];
+	convert2BinaryString(ticksStr, data.ticks / MULTIPLIER_TICKS_C, 3);
+	res[2] = ticksStr[0];
+	res[3] = ticksStr[1];
+	res[4] = ticksStr[2];
 
-	char *speedStr = malloc(3);
-	convert2BinaryString(speedStr, data.speed / multiplicator, 3);
-	strcat(res, speedStr);
-	free(speedStr);
+	char speedStr[3];
+	convert2BinaryString(speedStr, data.speed / MULTIPLIER_SPEED_C, 3);
+	res[5] = speedStr[0];
+	res[6] = speedStr[1];
+	res[7] = speedStr[2];
 
-	unsigned char c = strtol(res, 0, 2);
-	free(res);
+	unsigned char c = strtol(res, NULL, 2);
 
 	return c;
 }
 
 t_movement readMovement() {
-	uint8_t res = read();
-	t_movement movement = decode(res);
-	return movement;
+	t_movement r = decode(read());
+
+	printMovement(r);
+
+	return r;
 }
 
 void sendMovement(t_movement move) {
-	send(encode(move));
+	unsigned char e = encode(move);
+
+	printMovement(move);
+
+	send(e);
 }

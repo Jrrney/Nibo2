@@ -3,9 +3,12 @@
  * @author
  * @version
  */
-
 #include "main.h"
 #include <stdbool.h>
+
+//#ifndef display_init
+//#define display_init() display_init(DISPLAY_TYPE_TEXT);
+//#endif
 
 // Die darzustellende Grafik
 #include "good.xbm"
@@ -19,14 +22,14 @@ typedef enum Sensor {
 	RIGHT, FRONT_RIGHT, FRONT, FRONT_LEFT, LEFT
 } sensor_t;
 
-const int MINIMUM_DISTANCE_RIGHT = 200;
+const int MINIMUM_DISTANCE_RIGHT = 220;
 const int MINIMUM_DISTANCE_RIGHT_FRONT = 120;
 
 const int MINIMUM_DISTANCE_FRONT_RIGHT = 150;
 const int MINIMUM_DISTANCE_FRONT = 190;
 const int MINIMUM_DISTANCE_FRONT_LEFT = 160;
 
-const int MINIMUM_DISTANCE_LEFT = 200;
+const int MINIMUM_DISTANCE_LEFT = 220;
 const int MINIMUM_DISTANCE_LEFT_FRONT = 160;
 
 const int SPEED = 10;
@@ -145,8 +148,10 @@ void changeStuckState(state_t newState) {
 state_t detectPathOfMinResistance() {
 	state_t pathOfMinResistance = TURNING_LEFT;
 	int distLeft = getCurrentDistance(LEFT);
+	int distFrontLeft = getCurrentDistance(FRONT_LEFT);
 	int distRight = getCurrentDistance(RIGHT);
-	if (distLeft > distRight && distRight <= MINIMUM_DISTANCE_RIGHT) {
+	int distFrontRight = getCurrentDistance(FRONT_RIGHT);
+	if ((distLeft + distFrontLeft) > (distRight + distFrontRight)) {
 		pathOfMinResistance = TURNING_RIGHT;
 	}
 	return pathOfMinResistance;
@@ -157,7 +162,13 @@ void evaluateNextStep() {
 	case DRIVING:
 		if (isNearSomething(FRONT)) {
 			changeStuckState(STUCK);
-			if (isNearSomething(LEFT) && isNearSomething(RIGHT)) {
+//			if (isNearSomething(LEFT) && isNearSomething(RIGHT)) {
+//				changeState(DRIVING, BACK_DRIVING);
+//			} else {
+//				changeState(DRIVING, detectPathOfMinResistance());
+//			}
+			if (isNearSomething(LEFT) && isNearSomething(RIGHT)
+					&& isNearSomething(FRONT)) {
 				changeState(DRIVING, BACK_DRIVING);
 			} else {
 				changeState(DRIVING, detectPathOfMinResistance());
@@ -176,8 +187,9 @@ void evaluateNextStep() {
 			}
 		} else {
 			// lastState == BACK_DRIVING && left is nothing
-			copro_setTargetRel(-TURNING_STUCK_SPEED, TURNING_STUCK_SPEED, SPEED);
-			delay(2000);
+			copro_setTargetRel(-TURNING_STUCK_SPEED, TURNING_STUCK_SPEED,
+					SPEED);
+			delay(2500);
 			changeState(TURNING_LEFT, BACK_DRIVING);
 		}
 		break;
@@ -190,8 +202,9 @@ void evaluateNextStep() {
 			}
 		} else {
 			// lastState == BACK_DRIVING && left is nothing
-			copro_setTargetRel(TURNING_STUCK_SPEED, -TURNING_STUCK_SPEED, SPEED);
-			delay(2000);
+			copro_setTargetRel(TURNING_STUCK_SPEED, -TURNING_STUCK_SPEED,
+					SPEED);
+			delay(2500);
 			changeState(TURNING_RIGHT, BACK_DRIVING);
 		}
 		break;
@@ -252,8 +265,10 @@ void init() {
 
 	changeState(DRIVING, DRIVING);
 
+	changeStuckState(NOT_STUCK);
+
 	// initialisiert das Display und die Grafikfunktionen
-	display_init(DISPLAY_TYPE_TXT);
+	display_init();
 
 	gfx_init();
 

@@ -91,7 +91,4 @@ typedef unsigned long   u32_t;
 typedef signed long     i32_t;
 typedef float           f32_t;
 
-
-
-
 #endif  /* MAIN_H_ */

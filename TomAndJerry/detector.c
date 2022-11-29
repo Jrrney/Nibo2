@@ -3,7 +3,7 @@
 #include "cat.xbm"
 #include "detector.h"
 
-const int FRONT_DETECT_DISTANCE = 200;
+const int FRONT_DETECT_DISTANCE = 80;
 
 t_role currentRole;
 
