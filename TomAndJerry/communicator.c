@@ -1,3 +1,10 @@
+/**
+ * @file communicator.h
+ * @author Jenny Dietrich
+ * @date 19.11.2022
+ * @brief xbee movement transmission related functions
+ */
+
 #include "communicator.h"
 
 #define CHAR_BIT 8
@@ -29,6 +36,12 @@ void send(unsigned char data) {
 	}
 }
 
+/**
+ * converts a number into a binary representational string (char array)
+ *
+ * @param the number to be converted
+ * @return the translated binary representational string
+ */
 char* charToBinary(unsigned char c) {
 	static char bin[CHAR_BIT + 1] = { 0 };
 	int i;
@@ -41,18 +54,13 @@ char* charToBinary(unsigned char c) {
 	return bin;
 }
 
-char* toBinaryString(int n) {
-	char *string = malloc(sizeof(int) * 8 + 1);
-	if (!string) {
-		return NULL;
-	}
-	for (int i = 31; i >= 0; i--) {
-		string[i] = n & 1;
-		n >>= 1;
-	}
-	return string;
-}
-
+/**
+ * converts a number into a binary representational string (char array) with a given length
+ *
+ * @param the number to be converted
+ * @param length the given length
+ * @param str the translated binary representational string
+ */
 void convert2BinaryString(char *str, unsigned int number, unsigned int length) {
 	unsigned int decimal = number;
 	for (int i = 0; i < length; i++) {
@@ -61,6 +69,13 @@ void convert2BinaryString(char *str, unsigned int number, unsigned int length) {
 	}
 }
 
+/**
+ * decodes a movement from a 8-bit number to a movement
+ *
+ * @param data the 8-bit data to be decoded
+ *
+ * @return the decoded movement
+ */
 t_movement decode(unsigned char data) {
 	char *binaryData = charToBinary(data);
 
@@ -84,6 +99,11 @@ t_movement decode(unsigned char data) {
 	return movement;
 }
 
+/**
+ * prints the movement on the display
+ *
+ * @param move the movement to be displayed
+ */
 void printMovement(t_movement move) {
 	gfx_fill(0);
 	char output[20] = "";
@@ -99,6 +119,11 @@ void printMovement(t_movement move) {
 	gfx_print_text(output);
 }
 
+/**
+ * Encodes a movement to a 8-bit representational number
+ *
+ * @param data the movement to be encoded
+ */
 unsigned char encode(t_movement data) {
 	char res[8 + 1];
 

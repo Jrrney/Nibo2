@@ -1,3 +1,10 @@
+/**
+ * @file detector.c
+ * @author Jenny Dietrich
+ * @date 19.11.2022
+ * @brief role detection related functions impl
+ */
+
 #include "main.h"
 #include "mouse.xbm"
 #include "cat.xbm"
@@ -7,16 +14,23 @@ const int FRONT_DETECT_DISTANCE = 80;
 
 t_role currentRole;
 
+/**
+ * Sets the role of the NIBO and displays the role on the display
+ *
+ * @param role to be set
+ */
 void setRole(t_role role) {
 	currentRole = role;
 
-	//reinige Display
+	//clear Display
 	gfx_move(0, 0);
 	gfx_fill(0);
 
 	if (role == CAT) {
+		// draws a pixelart of a cat
 		gfx_draw_xbm_P(cat_width, cat_height, (PGM_P) cat_bits);
 	} else if (role == MOUSE) {
+		// draws a pixelart of a mouse
 		gfx_draw_xbm_P(mouse_width, mouse_height, (PGM_P) mouse_bits);
 	}
 }
@@ -24,7 +38,7 @@ void setRole(t_role role) {
 t_role detectAndSetRole() {
 	t_role role = MOUSE;
 
-	// Aktualisierung aller Daten vom Coprozessor
+	// Update coprocessor data
 	copro_update();
 
 	if ((copro_distance[2] / 256) >= FRONT_DETECT_DISTANCE) {

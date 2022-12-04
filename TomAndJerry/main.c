@@ -1,7 +1,8 @@
 /**
- * @brief Your main class
- * @author
- * @version
+ * @file main.c
+ * @brief main logic
+ * @author Jenny Dietrich
+ * @version 19.11.2022
  */
 
 #include <stdio.h>
@@ -14,6 +15,9 @@
 #include "move.h"
 #include "generator.h"
 
+/**
+ * Initializing all used NIBO components
+ */
 void init() {
 	// using system time for setting a seed for pseudo-random number generation
 	srand(time(0));
@@ -45,7 +49,7 @@ void init() {
 }
 
 /**
- * Main Method of the program.
+ * Main logic, detects role and executes to role related code
  */
 int main() {
 
