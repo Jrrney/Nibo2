@@ -56,7 +56,6 @@ int main() {
 	delay(15000);
 
 	if (role == CAT) {
-		// TODO maybe 00000000 empf
 		while (true) {
 			t_movement move = readMovement();
 			if (move.direction == 0 && move.ticks == 0 && move.speed == 0) {

@@ -68,6 +68,13 @@
 // bool
 #include <stdbool.h>
 
+#include "detector.h"
+#include "statemachine.h"
+
+#ifndef DISPLAY_TYPE_TEXT
+#define DISPLAY_TYPE_TEXT
+#endif
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////

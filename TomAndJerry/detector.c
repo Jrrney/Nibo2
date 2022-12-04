@@ -8,8 +8,6 @@ const int FRONT_DETECT_DISTANCE = 80;
 t_role currentRole;
 
 void setRole(t_role role) {
-//	if(currentRole == role) return;
-
 	currentRole = role;
 
 	//reinige Display

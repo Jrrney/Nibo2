@@ -13,11 +13,9 @@ void executeMovement(t_movement movement) {
 			copro_setTargetRel(-ticks, -ticks, speed);
 			break;
 		case LEFT:
-//			copro_setTargetRel(-ticks, ticks, speed);
 			copro_setTargetRel(0, ticks, speed);
 			break;
 		case RIGHT:
-//			copro_setTargetRel(ticks, -ticks, speed);
 			copro_setTargetRel(ticks, 0, speed);
 			break;
 		default:
