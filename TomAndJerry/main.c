@@ -31,7 +31,7 @@ void init() {
 	leds_init();
 
 	// initialisiert das Display und die Grafikfunktionen
-	display_init();
+	display_init(DISPLAY_TYPE_TEXT);
 
 	gfx_init();
 

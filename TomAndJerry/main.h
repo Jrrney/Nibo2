@@ -78,7 +78,7 @@
 #include <stdlib.h>
 
 #ifndef DISPLAY_TYPE_TEXT
-#define DISPLAY_TYPE_TEXT void
+#define DISPLAY_TYPE_TEXT
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////////
